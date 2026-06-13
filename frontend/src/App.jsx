@@ -50,6 +50,7 @@ function TypingIndicator() {
 
 export default function App() {
   const [assistantName, setAssistantName] = useState('AI Assistant')
+  const [imageEditingEnabled, setImageEditingEnabled] = useState(false)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -67,9 +68,12 @@ export default function App() {
       .then(data => {
         const name = data.name || 'AI Assistant'
         setAssistantName(name)
+        setImageEditingEnabled(!!data.image_editing)
         setMessages([{
           role: 'agent',
-          content: `Hi! I'm ${name}'s AI assistant. Ask me about their work — or attach a photo and tell me how to edit it.`,
+          content: data.image_editing
+            ? `Hi! I'm ${name}'s AI assistant. Ask me about their work — or attach a photo and tell me how to edit it.`
+            : `Hi! I'm ${name}'s AI assistant. Ask me anything about their work, services, or how to get in touch.`,
         }])
       })
       .catch(() => {
@@ -191,7 +195,7 @@ export default function App() {
       </main>
 
       <footer>
-        {attachedPreview && (
+        {imageEditingEnabled && attachedPreview && (
           <div className="attachment-preview">
             <img src={attachedPreview} alt="to edit" />
             <button className="remove-attachment" onClick={clearAttachment} aria-label="Remove image">×</button>
@@ -199,7 +203,7 @@ export default function App() {
         )}
         <div className="input-row">
           <input type="file" accept="image/*" ref={fileInputRef} onChange={pickFile} hidden />
-          <button
+          {imageEditingEnabled && <button
             className="attach-btn"
             onClick={() => fileInputRef.current?.click()}
             disabled={loading}
@@ -211,7 +215,7 @@ export default function App() {
               <circle cx="8.5" cy="8.5" r="1.5" />
               <path d="M21 15l-5-5L5 21" />
             </svg>
-          </button>
+          </button>}
           <textarea
             ref={textareaRef}
             value={input}

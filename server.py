@@ -50,6 +50,7 @@ except FileNotFoundError:
 
 _client = rag.get_client()
 _name = os.environ.get("ASSISTANT_NAME", "AI Assistant")
+_image_editing_enabled = bool(os.environ.get("REPLICATE_API_TOKEN", "").strip())
 
 
 class Question(BaseModel):
@@ -59,7 +60,7 @@ class Question(BaseModel):
 
 @app.get("/info")
 def info():
-    return {"name": _name}
+    return {"name": _name, "image_editing": _image_editing_enabled}
 
 
 @app.post("/ask")
