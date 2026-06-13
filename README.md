@@ -1,72 +1,157 @@
-# First Agentic AI — a tiny RAG agent
+# My Assistant RAG
 
-A small, beginner-friendly **Retrieval-Augmented Generation (RAG)** agent built
-with the Gemini API. Ask it questions and it answers using *your* documents
-instead of just what the model memorized during training.
+A personal AI assistant powered by Retrieval-Augmented Generation (RAG). Point it at your own profile or resume, and it answers client questions about your services, experience, and how to hire you — using only what you wrote, nothing made up.
+
+Built with **Gemini 2.5 Flash** (answers) + **gemini-embedding-001** (vectors), **FastAPI** backend, and a **React + Vite** frontend.
 
 ## How it works
 
 ```
-your documents  ─►  split into chunks  ─►  embed each chunk  ─►  knowledge_index.npz
+your profile.md  →  split into chunks  →  embed each chunk  →  knowledge_index.npz
                                                                         │
-your question  ─►  embed question  ─►  find most similar chunks  ◄──────┘
+client's question  →  embed question  →  find closest chunks  ◄─────────┘
                                                 │
-                                  give chunks + question to Gemini  ─►  answer
+                              chunks + question → Gemini → answer
 ```
 
-1. **Ingest** (`ingest.py`): reads every file in `knowledge/`, splits them into
-   chunks, and turns each chunk into an *embedding* (a list of 3072 numbers that
-   captures its meaning). These are saved to `knowledge_index.npz`.
-2. **Retrieve + answer** (`agent.py`): embeds your question, finds the chunks
-   whose meaning is closest (by cosine similarity), and asks Gemini to answer
-   using only those chunks.
+## Project structure
 
-## Files
+```
+├── rag.py                  # shared helpers: client, chunking, embedding, similarity
+├── ingest.py               # builds the vector index from your markdown file
+├── agent.py                # CLI chat agent (terminal use)
+├── server.py               # FastAPI backend — exposes /ask and /info
+├── abhishek_profile.md     # profile used as the knowledge source
+├── profile_template.md     # blank template to copy and fill in
+├── knowledge/              # legacy sample docs (coffee demo)
+├── frontend/               # React + Vite chat UI
+│   ├── src/App.jsx
+│   ├── src/App.css
+│   └── vite.config.js
+├── pyproject.toml          # Python dependencies (managed by uv)
+├── .env                    # API keys — never commit this
+└── knowledge_index.npz     # generated index — never commit this
+```
 
-| File                  | What it does                                              |
-| --------------------- | --------------------------------------------------------- |
-| `knowledge/`          | Your documents (`.md` / `.txt`). Edit these!              |
-| `rag.py`              | Shared helpers: client, chunking, embedding, similarity.  |
-| `ingest.py`           | Builds the searchable index from `knowledge/`.            |
-| `agent.py`            | The chat agent that retrieves and answers.                |
-| `check_setup.py`      | Verifies your API key and lists available models.         |
-| `.env`                | Holds your `GEMINI_API_KEY` (never commit this).          |
-| `knowledge_index.npz` | The generated index (rebuilt by `ingest.py`).             |
+## Prerequisites
 
-## Usage
+- [Python 3.11+](https://www.python.org/downloads/)
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) — fast Python package manager
+- [Node.js 18+](https://nodejs.org/)
+- A [Gemini API key](https://aistudio.google.com/apikey) (free tier works)
 
-```powershell
-# 1. (once) confirm your key works
-uv run check_setup.py
+## Setup
 
-# 2. build the index from the documents in knowledge/
-uv run ingest.py
+### 1. Clone the repo
 
-# 3a. chat interactively
+```bash
+git clone https://github.com/ABHI9960DEO/My-Assistant-RAG.git
+cd My-Assistant-RAG
+```
+
+### 2. Install Python dependencies
+
+```bash
+uv sync
+```
+
+### 3. Install frontend dependencies
+
+```bash
+cd frontend
+npm install
+cd ..
+```
+
+### 4. Create your `.env` file
+
+```bash
+cp .env.example .env   # or create it manually
+```
+
+Add the following to `.env`:
+
+```
+GEMINI_API_KEY=your_key_here
+ASSISTANT_NAME=Your Name
+```
+
+Get your free API key at https://aistudio.google.com/apikey
+
+### 5. Create your profile
+
+Copy the template and fill it in:
+
+```bash
+cp profile_template.md my_profile.md
+# edit my_profile.md with your details
+```
+
+Or point it at an existing markdown file anywhere on your machine.
+
+### 6. Build the index
+
+```bash
+uv run ingest.py my_profile.md
+```
+
+You should see output like:
+
+```
+Read 1 file(s) -> 7 chunk(s).
+Embedding chunks...
+Done. Each chunk is a vector of 3072 numbers.
+Index saved to knowledge_index.npz.
+```
+
+### 7. Start the servers
+
+**Terminal 1 — backend:**
+
+```bash
+uv run uvicorn server:app --reload --port 8001
+```
+
+**Terminal 2 — frontend:**
+
+```bash
+cd frontend
+npx vite --port 5173
+```
+
+Open **http://localhost:5173** in your browser.
+
+## Updating your profile
+
+Edit your markdown file, then re-run ingest — no server restart needed if using `--reload`:
+
+```bash
+uv run ingest.py my_profile.md
+```
+
+## CLI usage (no UI)
+
+```bash
+# Interactive chat in the terminal
 uv run agent.py
 
-# 3b. or ask a single question
-uv run agent.py "which coffee is best for espresso?"
+# Single question
+uv run agent.py "what services do you offer?"
 ```
 
-## Make it your own
+## Configuration
 
-1. Delete the sample files in `knowledge/` and drop in your own `.md` or `.txt`
-   files (notes, documentation, a FAQ, anything).
-2. Re-run `uv run ingest.py` to rebuild the index.
-3. Run `uv run agent.py` and ask away.
-
-That's the whole loop: **change documents → re-ingest → ask.**
-
-## Settings you can tweak
-
-- `rag.py` → `CHAT_MODEL` / `EMBED_MODEL`: which Gemini models to use.
-- `rag.py` → `chunk_text(max_chars=800)`: bigger chunks = more context per piece,
-  smaller chunks = more precise retrieval.
-- `agent.py` → `TOP_K = 3`: how many chunks to feed the model as context.
+| Setting | Where | Default |
+|---|---|---|
+| `GEMINI_API_KEY` | `.env` | — |
+| `ASSISTANT_NAME` | `.env` | `AI Assistant` |
+| Chat model | `rag.py` → `CHAT_MODEL` | `gemini-2.5-flash` |
+| Embed model | `rag.py` → `EMBED_MODEL` | `gemini-embedding-001` |
+| Chunks returned per query | `server.py` → `TOP_K` | `3` |
+| Max chunk size | `rag.py` → `chunk_text(max_chars)` | `800` chars |
 
 ## Security
 
-Your API key lives in `.env`, which is git-ignored. Never paste it into code,
-screenshots, or chats. If it is ever exposed, regenerate it at
-https://aistudio.google.com/apikey.
+- `.env` is git-ignored — never commit your API key
+- `knowledge_index.npz` is git-ignored — regenerate it locally after cloning
+- If your key is ever exposed, regenerate it at https://aistudio.google.com/apikey
