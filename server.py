@@ -16,9 +16,16 @@ import rag
 
 app = FastAPI()
 
+_frontend_url = os.environ.get("FRONTEND_URL", "")
+_origins = (
+    [_frontend_url, "http://localhost:5173", "http://localhost:5174"]
+    if _frontend_url
+    else ["*"]
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174"],
+    allow_origins=_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

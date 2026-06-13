@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import './App.css'
 
-const API_URL = 'http://localhost:8001'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001'
 
 function SourceBadge({ file, score }) {
   return <span className="source-badge">{file} · {score}</span>
