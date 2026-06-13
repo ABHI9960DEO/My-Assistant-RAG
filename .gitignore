@@ -1,0 +1,23 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Secrets — NEVER commit your API key
+.env
+
+# Generated RAG index
+knowledge_index.npz
+
+# Node
+node_modules/
+frontend/dist/
+
+# IDE
+.idea/
