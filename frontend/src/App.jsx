@@ -144,6 +144,9 @@ export default function App() {
         body: JSON.stringify({ question: text, session_id: sessionId.current }),
       })
       const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.detail || `Server error ${res.status}`)
+      }
       setMessages(prev => [...prev, { role: 'agent', content: data.answer, sources: data.sources }])
     } catch {
       setMessages(prev => [...prev, { role: 'agent', content: "Sorry, I couldn't reach the server. Make sure the backend is running." }])

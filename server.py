@@ -11,6 +11,7 @@ import numpy as np
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
+from google.genai.errors import ClientError
 from langchain_core.chat_history import InMemoryChatMessageHistory
 from langchain_core.messages import AIMessage, HumanMessage
 from pydantic import BaseModel
@@ -91,7 +92,13 @@ def ask(body: Question):
         f"QUESTION: {body.question}\n\n"
         "ANSWER:"
     )
-    response = _client.models.generate_content(model=rag.CHAT_MODEL, contents=prompt)
+    try:
+        response = _client.models.generate_content(model=rag.CHAT_MODEL, contents=prompt)
+    except ClientError as e:
+        if e.status_code == 429:
+            raise HTTPException(status_code=429, detail="Gemini API quota exceeded. Please try again later.")
+        raise HTTPException(status_code=502, detail=str(e))
+
     answer = response.text
 
     # Save this turn to memory.
